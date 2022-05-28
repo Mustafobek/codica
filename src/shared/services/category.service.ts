@@ -1,0 +1,96 @@
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Category } from '../models/Category.model';
+import { CategoryRepository } from '../repository/category.repo';
+import logger from '../utils/logger';
+
+@Injectable()
+export class CategoryService {
+  constructor(
+    @InjectRepository(CategoryRepository)
+    private categoryRepo: CategoryRepository,
+  ) {}
+
+  async getAllCategories() {
+    try {
+      const cats = await this.categoryRepo.find({});
+
+      return { success: true, cats };
+    } catch (error) {
+      logger.errorLog('Error while getAllCategories', error);
+      return { success: false };
+    }
+  }
+
+  async getCategoryById(id: number) {
+    try {
+      const cat = await this.categoryRepo.findOne({ where: { id } });
+
+      if (!cat) {
+        throw new NotFoundException('Category not found');
+      }
+
+      return { success: true, cat };
+    } catch (error) {
+      logger.errorLog('Error while getting category by id', error);
+      return { success: false };
+    }
+  }
+
+  async getCategoryByName(name: string) {
+    try {
+      const cat = await this.categoryRepo.findOne({ where: { name } });
+
+      if (!cat) {
+        throw new NotFoundException('Category not found');
+      }
+
+      return { success: true, cat };
+    } catch (error) {
+      logger.errorLog('Error while getting category by name', error);
+      return { success: false };
+    }
+  }
+
+  async createCategory(name: string) {
+    try {
+      const catExists = await this.getCategoryByName(name);
+
+      if (catExists.success) {
+        throw new BadRequestException('Cat exists');
+      }
+
+      const cat = new Category();
+      cat.name = name;
+      await cat.save();
+
+      return { success: true, cat };
+    } catch (error) {
+      logger.errorLog('Error while creating category', error);
+      return { success: false };
+    }
+  }
+
+  async updateCategory(id: number, name: string) {
+    try {
+      const catData = await this.getCategoryById(id);
+
+      catData.cat.name = name;
+      await catData.cat.save();
+  
+      return { success: true, cat: catData.cat };
+    } catch (error) {
+      logger.errorLog('Error while update category', error)
+      return { success: false };
+    }
+  }
+
+  // delete if only there is not transcations in category
+  async deleteCategory(id: number) {
+    // transactions in category method
+  }
+}
