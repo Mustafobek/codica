@@ -78,19 +78,6 @@ export class TransactionService {
     }
   }
 
-  async deleteTransaction(id: number) {
-    try {
-      const transactionData = await this.getTransaction(id);
-
-      await this.transactionRepo.delete({ id: transactionData.transaction.id });
-
-      return { success: true };
-    } catch (error) {
-      logger.errorLog('Error while deleting transaction', error);
-      return { success: false };
-    }
-  }
-
   async createTransaction(bankId: number, categoryIds: number[]) {
     try {
       const transactionData: AxiosResponse = await axios.get(
@@ -166,6 +153,32 @@ export class TransactionService {
       return { success: true, transaction };
     } catch (error) {
       logger.errorLog('Error while create transaction in app', error);
+      return { success: false };
+    }
+  }
+
+  async deleteTransaction(id: number) {
+    try {
+      const { transaction, success } = await this.getTransaction(id);
+
+      if(success) {
+        const bank = await this.bankRepo.findOne({where: {id: transaction.bank}})
+
+        // if money was profit then it will be removed
+        if(transaction.type === TransactionTypeEnum.profitable) {
+          bank.balance -= transaction.amount
+        } else {
+          bank.balance += transaction.amount
+        }
+
+        await this.transactionRepo.delete({ id });
+
+        return { success: true };
+      } else {
+        return { success: false };
+      }
+    } catch (error) {
+      logger.errorLog('Error while deleting transaction', error);
       return { success: false };
     }
   }

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Post, Query } from "@nestjs/common";
 import { TransactionService } from "../shared/services/transaction.service";
 import {
   CreateTransactionDto,
@@ -59,6 +59,18 @@ export class TransactionController {
     try {
       return this.transactionService.createTransactionInApp(transactionData)
     } catch (err) {
+      return { success: false };
+    }
+  }
+
+  @Delete(':id')
+  @ApiOperation({ description: 'удалить' })
+  async deleteTransaction(
+    @Param('id') id: number
+  ) {
+    try {
+      return this.transactionService.deleteTransaction(id)
+    } catch (error) {
       return { success: false };
     }
   }

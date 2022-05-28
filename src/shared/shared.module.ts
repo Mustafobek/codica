@@ -9,6 +9,7 @@ import { TransactionRepository } from './repository/transaction.repo';
 import { BankService } from './services/bank.service';
 import { CategoryService } from './services/category.service';
 import { TransactionService } from './services/transaction.service';
+import { StatisticsService } from './services/statistics.service';
 
 @Module({
   imports: [
@@ -22,7 +23,13 @@ import { TransactionService } from './services/transaction.service';
     BankService,
     CategoryService,
     TransactionService,
+    StatisticsService,
   ],
-  exports: [BankService, CategoryService, TransactionService],
+  exports: [
+    BankService,
+    CategoryService,
+    TransactionService,
+    StatisticsService,
+  ],
 })
 export class SharedModule {}
