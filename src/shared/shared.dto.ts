@@ -33,7 +33,7 @@ export class CreateBankDto {
 }
 
 export class CreateTransactionDto {
-g  @IsNotEmpty()
+  @IsNotEmpty()
   amount: number;
 
   @IsNotEmpty()
