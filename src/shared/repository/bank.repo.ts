@@ -3,4 +3,6 @@ import { Bank } from '../models/Bank.model';
 
 
 @EntityRepository(Bank)
-export class BankRepository extends Repository<Bank> {}
+export class BankRepository extends Repository<Bank> {
+  
+}

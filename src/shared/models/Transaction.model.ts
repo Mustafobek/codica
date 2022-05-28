@@ -21,7 +21,7 @@ export class Transaction extends BaseEntity {
   createdAt: Date;
 
   // categoryIds
-  @Column({ default: [] })
+  @Column('int', { array: true, default: [] })
   category: number[]
 
   // bankId

@@ -1,4 +1,8 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Bank } from './models/Bank.model';
+import { Category } from './models/Category.model';
+import { Transaction } from './models/Transaction.model';
 import { BankRepository } from './repository/bank.repo';
 import { CategoryRepository } from './repository/category.repo';
 import { TransactionRepository } from './repository/transaction.repo';
@@ -7,14 +11,17 @@ import { CategoryService } from './services/category.service';
 import { TransactionService } from './services/transaction.service';
 
 @Module({
-  imports: [],
+  imports: [
+    TypeOrmModule.forFeature([
+      BankRepository,
+      CategoryRepository,
+      TransactionRepository,
+    ]),
+  ],
   providers: [
     BankService,
     CategoryService,
     TransactionService,
-    BankRepository,
-    CategoryRepository,
-    TransactionRepository,
   ],
   exports: [BankService, CategoryService, TransactionService],
 })

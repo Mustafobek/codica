@@ -7,7 +7,7 @@ export const TypeormConfig: TypeOrmModuleOptions = {
   port: DATABASE_PORT,
   username: DATABASE_USERNAME,
   password: DATABASE_PASSWORD,
-  entities: [__dirname + '/../shared/models/*.model.{ts}'],
+  entities: [__dirname + './../**/*.model{.ts,.js}'],
   type: 'postgres',
   synchronize: true,
 }
