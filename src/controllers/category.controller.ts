@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CategoryService } from 'src/shared/services/category.service';
+import { CreateCategoryDto } from 'src/shared/shared.dto';
 
 @Controller('v1/api/category')
 @ApiTags('Category')
@@ -38,9 +39,9 @@ export class CategoryController {
 
   @Post('')
   @ApiOperation({ description: 'создать' })
-  async createCategory(@Body('name') name: string) {
+  async createCategory(@Body() categoryData: CreateCategoryDto) {
     try {
-      return this.categoryService.createCategory(name);
+      return this.categoryService.createCategory(categoryData);
     } catch (error) {
       return { success: false };
     }

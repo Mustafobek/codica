@@ -6,13 +6,16 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Category } from '../models/Category.model';
 import { CategoryRepository } from '../repository/category.repo';
+import { CreateCategoryDto } from '../shared.dto';
 import logger from '../utils/logger';
+import { TransactionService } from './transaction.service';
 
 @Injectable()
 export class CategoryService {
   constructor(
     @InjectRepository(CategoryRepository)
     private categoryRepo: CategoryRepository,
+    private transactionService: TransactionService,
   ) {}
 
   async getAllCategories() {
@@ -56,16 +59,18 @@ export class CategoryService {
     }
   }
 
-  async createCategory(name: string) {
+  async createCategory(categoryData: CreateCategoryDto) {
     try {
-      const catExists = await this.getCategoryByName(name);
+      const catExists = await this.categoryRepo.findOne({
+        where: { name: categoryData.name },
+      });
 
-      if (catExists.success) {
+      if (catExists) {
         throw new BadRequestException('Cat exists');
       }
 
       const cat = new Category();
-      cat.name = name;
+      cat.name = categoryData.name;
       await cat.save();
 
       return { success: true, cat };
@@ -81,16 +86,34 @@ export class CategoryService {
 
       catData.cat.name = name;
       await catData.cat.save();
-  
+
       return { success: true, cat: catData.cat };
     } catch (error) {
-      logger.errorLog('Error while update category', error)
+      logger.errorLog('Error while update category', error);
       return { success: false };
     }
   }
 
-  // delete if only there is not transcations in category
+  // delete if only there is not any transactions in category
   async deleteCategory(id: number) {
-    // transactions in category method
+    const categoryInfo = await this.getCategoryById(id);
+    const transactionsInCategory =
+      await this.transactionService.isAnyTransactionsInCategory(
+        categoryInfo.cat.id,
+      );
+
+    if (transactionsInCategory.success) {
+      if (transactionsInCategory.transactions) {
+        return {
+          success: false,
+          message: 'There are some transactions in category',
+        };
+      } else {
+        await this.categoryRepo.delete({ id: categoryInfo.cat.id });
+        return { success: true };
+      }
+    }
+
+    return { success: false };
   }
 }

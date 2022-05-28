@@ -6,25 +6,22 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Bank } from '../models/Bank.model';
 import { BankRepository } from '../repository/bank.repo';
-import { TransactionRepository } from '../repository/transaction.repo';
-import { UpdateBankDto } from '../shared.dto';
+import { CreateBankDto, UpdateBankDto } from "../shared.dto";
 import logger from '../utils/logger';
+import { TransactionService } from "./transaction.service";
 
 @Injectable()
 export class BankService {
   constructor(
     @InjectRepository(BankRepository)
     private bankRepo: BankRepository,
-  ) // @InjectRepository(TransactionRepository)
-  // private transactionRepo: TransactionRepository
+    private transactionService: TransactionService
+  )
   {}
 
-  // TODO: TYPEORM ERROR
   async getAllBanks() {
     try {
-      const banks = await this.bankRepo.find({
-        where: { createdAt: new Date(0) },
-      });
+      const banks = await this.bankRepo.find({});
 
       return { success: true, banks };
     } catch (error) {
@@ -53,15 +50,19 @@ export class BankService {
     return { success: true, bank };
   }
 
-  async createBank(name: string) {
-    const bankExists = await this.getBankByName(name);
+  async createBank(bankData: CreateBankDto) {
+    const bankExists = await this.bankRepo.findOne({
+      where: {
+        name: bankData.name
+      }
+    });
 
-    if (bankExists.success) {
+    if (bankExists) {
       throw new BadRequestException('Bank already exists');
     }
 
     const bank = new Bank();
-    bank.name = name;
+    bank.name = bankData.name;
     await bank.save();
 
     return { success: true, bank };
@@ -81,14 +82,20 @@ export class BankService {
     return { success: true };
   }
 
-  // delete if only there is not transcations in bank
+  // delete if only there is not transactions in bank
   async deleteBank(id: number) {
     const bankData = await this.getBankById(id);
+    const transactionsExistInBank = await this.transactionService.isAnyTransactionsInBank(id)
 
-    // use getTransactionsInBank method
+    if(transactionsExistInBank.success) {
+      if(transactionsExistInBank.transactions) {
+        return { success: false, message: 'There are some transactions in bank' };
+      } else {
+        await this.bankRepo.delete({ id: bankData.bank.id });
+        return { success: true };
+      }
+    }
 
-    await this.bankRepo.delete({ id: bankData.bank.id });
-
-    return { success: true };
+    return { success: false };
   }
 }

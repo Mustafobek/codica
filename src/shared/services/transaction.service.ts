@@ -1,21 +1,20 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import axios from 'axios';
-import { WEBHOOK_API, WEBHOOK_API_CONFIG } from 'src/constants';
-import { Transaction } from '../models/Transaction.model';
-import { TransactionRepository } from '../repository/transaction.repo';
-import { AxiosResponse, TransactionPaginationOptionsDto } from '../shared.dto';
-import logger from '../utils/logger';
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import axios from "axios";
+import { WEBHOOK_API, WEBHOOK_API_CONFIG } from "src/constants";
+import { Transaction, TransactionTypeEnum } from "../models/Transaction.model";
+import { TransactionRepository } from "../repository/transaction.repo";
+import { AxiosResponse, CreateTransactionDto, TransactionPaginationOptionsDto } from "../shared.dto";
+import logger from "../utils/logger";
+import { BankRepository } from "../repository/bank.repo";
 
 @Injectable()
 export class TransactionService {
   constructor(
     @InjectRepository(TransactionRepository)
     private transactionRepo: TransactionRepository,
+    @InjectRepository(BankRepository)
+    private bankRepo: BankRepository
   ) {}
 
   async isAnyTransactionsInBank(bankId: number) {
@@ -24,9 +23,7 @@ export class TransactionService {
         where: { bank: bankId },
       });
 
-      // if(transactions) {}
-
-      logger.infoLog(transactions);
+      return { success: true, transactions };
     } catch (error) {
       logger.errorLog('Error while getting transactions in bank', error);
       return { success: false };
@@ -35,11 +32,15 @@ export class TransactionService {
 
   async isAnyTransactionsInCategory(categoryId: number) {
     try {
-      const transactions = await this.transactionRepo.count({
-        where: { category: categoryId },
-      });
+      const transactions = await this.transactionRepo
+        .createQueryBuilder('Transaction')
+        .where('Transaction.category IN (:categoryId)', {
+          categoryId: [categoryId],
+        })
+        .orderBy('Transaction.createdAt')
+        .getMany()
 
-      logger.infoLog(transactions);
+      return { success: true, transactions: transactions.length}
     } catch (error) {
       logger.errorLog('Error while getting transactions in bank', error);
     }
@@ -47,7 +48,13 @@ export class TransactionService {
 
   async getAllTransactions(paginationOptions: TransactionPaginationOptionsDto) {
     try {
-      const transactions = await this.transactionRepo.find();
+      const limit = paginationOptions.limit ? paginationOptions.limit : 10
+      const page = paginationOptions.page ? paginationOptions.page : 1
+
+      const transactions = await this.transactionRepo.findAndCount({
+        take: limit,
+        skip: (page - 1) * limit
+      });
 
       return { success: true, transactions };
     } catch (err) {
@@ -79,7 +86,7 @@ export class TransactionService {
 
       return { success: true };
     } catch (error) {
-      logger.errorLog('Error while delete transaction', error);
+      logger.errorLog('Error while deleting transaction', error);
       return { success: false };
     }
   }
@@ -95,6 +102,16 @@ export class TransactionService {
         throw new BadRequestException('Axios response error');
       }
 
+      const {
+        data: { type, amount },
+      } = transactionData;
+
+      const bank = await this.bankRepo.findOne({ where: { id: bankId } });
+
+      if(!bank) {
+        throw new NotFoundException('Bank not found')
+      }
+
       const transaction = new Transaction();
 
       for (const key in transactionData.data) {
@@ -102,12 +119,53 @@ export class TransactionService {
       }
       transaction.bank = bankId;
       transaction.category.concat(categoryIds);
-
       await transaction.save();
+
+      // update bank balance
+      if (type === TransactionTypeEnum.consumable) {
+        bank.balance -= amount
+      } else {
+        bank.balance += amount
+      }
+
+      await bank.save()
 
       return { success: true, transaction };
     } catch (error) {
       logger.errorLog('Error while create transaction', error);
+      return { success: false };
+    }
+  }
+
+  async createTransactionInApp(transactionData: CreateTransactionDto) {
+    try {
+      const { amount, type, bank: bankId, category } = transactionData;
+
+      const bank = await this.bankRepo.findOne({ where: { id: bankId } });
+
+      if(!bank) {
+        throw new NotFoundException('Bank not found')
+      }
+
+      const transaction = new Transaction()
+
+      for (const key in transactionData) {
+        transaction[key] = transactionData[key]
+      }
+
+      // update bank balance
+      if (type === TransactionTypeEnum.consumable) {
+        bank.balance -= amount
+      } else {
+        bank.balance += amount
+      }
+
+      await transaction.save();
+      await bank.save()
+
+      return { success: true, transaction };
+    } catch (error) {
+      logger.errorLog('Error while create transaction in app', error);
       return { success: false };
     }
   }

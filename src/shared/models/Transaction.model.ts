@@ -2,7 +2,7 @@ import { BaseEntity, Column, Entity, PrimaryGeneratedColumn } from "typeorm";
 import { Category } from "./Category.model";
 
 export enum TransactionTypeEnum {
-  profitable = 'PORFITABLE',
+  profitable = 'PROFITABLE',
   consumable = 'CONSUMABLE'
 } 
 
@@ -11,7 +11,7 @@ export class Transaction extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number
 
-  @Column()
+  @Column('int')
   amount: number
 
   @Column()

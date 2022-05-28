@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { BankService } from 'src/shared/services/bank.service';
-import { UpdateBankDto } from 'src/shared/shared.dto';
+import { CreateBankDto, UpdateBankDto } from "src/shared/shared.dto";
 
 @Controller('v1/api/bank')
 @ApiTags('Bank')
@@ -45,9 +45,9 @@ export class BankController {
 
   @Post('')
   @ApiOperation({ description: 'создать' })
-  async createBank(@Body('name') name: string) {
+  async createBank(@Body() bankData: CreateBankDto) {
     try {
-      return this.bankService.createBank(name);
+      return this.bankService.createBank(bankData);
     } catch (error) {
       return { success: false };
     }
