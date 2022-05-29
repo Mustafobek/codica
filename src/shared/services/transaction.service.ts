@@ -7,6 +7,9 @@ import { TransactionRepository } from "../repository/transaction.repo";
 import { AxiosResponse, CreateTransactionDto, TransactionPaginationOptionsDto } from "../shared.dto";
 import logger from "../utils/logger";
 import { BankRepository } from "../repository/bank.repo";
+import { BankService } from "./bank.service";
+import { CategoryService } from "./category.service";
+import { CategoryRepository } from "../repository/category.repo";
 
 @Injectable()
 export class TransactionService {
@@ -14,7 +17,9 @@ export class TransactionService {
     @InjectRepository(TransactionRepository)
     private transactionRepo: TransactionRepository,
     @InjectRepository(BankRepository)
-    private bankRepo: BankRepository
+    private bankRepo: BankRepository,
+    @InjectRepository(CategoryRepository)
+    private categoryRepo: CategoryRepository
   ) {}
 
   async isAnyTransactionsInBank(bankId: number) {
@@ -105,6 +110,19 @@ export class TransactionService {
         transaction[key] = transactionData.data[key];
       }
       transaction.bank = bankId;
+
+      // check category exists
+      for (const catId of categoryIds) {
+        const category = await this.categoryRepo.findOne({
+          where: { id: catId },
+        });
+        console.log(category)
+
+        if(!category) {
+          return { success: false, message: `Category with id :${catId} not found`}
+        }
+      }
+
       transaction.category.concat(categoryIds);
       await transaction.save();
 
@@ -139,6 +157,18 @@ export class TransactionService {
       for (const key in transactionData) {
         transaction[key] = transactionData[key]
       }
+
+      // check category exists
+      for (const catId of category) {
+        const category = await this.categoryRepo.findOne({
+          where: { id: catId },
+        });
+
+        if(!category) {
+          return { success: false, message: `Category with id :${catId} not found`}
+        }
+      }
+
 
       // update bank balance
       if (type === TransactionTypeEnum.consumable) {
