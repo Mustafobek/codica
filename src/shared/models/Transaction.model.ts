@@ -1,5 +1,4 @@
 import { BaseEntity, Column, Entity, PrimaryGeneratedColumn } from "typeorm";
-import { Category } from "./Category.model";
 
 export enum TransactionTypeEnum {
   profitable = 'PROFITABLE',

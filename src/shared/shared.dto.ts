@@ -1,5 +1,6 @@
 import { TransactionTypeEnum } from "./models/Transaction.model";
 import { IsNotEmpty } from "class-validator";
+import { ApiProperty } from "@nestjs/swagger";
 
 export class UpdateBankDto {
   @IsNotEmpty()
@@ -44,4 +45,18 @@ export class CreateTransactionDto {
 
   @IsNotEmpty()
   category: number[];
+}
+
+export class BankTransactionsStatsDto {
+  @IsNotEmpty()
+  @ApiProperty()
+  bankId: number
+
+  @IsNotEmpty()
+  @ApiProperty()
+  startDate: Date
+
+  @IsNotEmpty()
+  @ApiProperty()
+  endDate: Date
 }
